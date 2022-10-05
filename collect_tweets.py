@@ -211,7 +211,7 @@ def search_tweets(query, start_time, since_id, outdir, count):
 
             time.sleep(5)
 
-            return True
+        return True
 
     except Exception as e:
         print("Exception for query:{}.\nError:{}".format(query, traceback.format_exc()))
