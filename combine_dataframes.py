@@ -2,10 +2,6 @@ import pandas as pd
 import glob, sys, csv, json, os
 
 def clean_csv_dfs_(indir, tag, outdir, stat_dir):
-	'''
-	Combine all dataframes for a given hastag to one dataframe.
-	'''
-
 	print("********************Tag:{}***********************".format(tag))
 	dfs = [pd.read_csv(file, lineterminator='\n') for file in \
 			glob.glob('{}/tweets-search-{}*.csv'.format(indir, tag))]
@@ -23,15 +19,16 @@ def clean_csv_dfs_(indir, tag, outdir, stat_dir):
 	df[~df.index.duplicated(keep='first')]
 	df['author_id'] = df.author_id.astype('str')
 	print("number of unique tweets: {}".format(len(df)))
-	df.to_pickle('{}/tweets-search-{}.pkl'.format(outdir, tag))
-
-	latest_tweet = df[df.tweetid>=df.tweetid.max()].iloc[0]
-
+	
+	df.to_csv('{}/tweets-search-{}.csv'.format(outdir, tag))
+	latest_tweet = df[df.index>=df.index.max()].iloc[0]
+	
 	with open('tweet_count.txt', 'a') as f:
 		f.write('tag: {}, count: {}\n'.format(tag, len(df)))
 	
 	with open('{}/tweet-stat-{}.json'.format(stat_dir, tag), 'w') as fp:
 		json.dump(latest_tweet.to_json(), fp)
+
 
 	dfs = [pd.read_csv(file, lineterminator='\n') for file in \
 			glob.glob('{}/users-search-{}*.csv'.format(indir, tag))]
@@ -43,7 +40,7 @@ def clean_csv_dfs_(indir, tag, outdir, stat_dir):
 		df.set_index('userid', inplace=True)
 		df = df[~df.index.duplicated(keep='first')]
 		print("number of unique users: {}".format(len(df)))
-		df.to_pickle('{}/users-search-{}.pkl'.format(outdir, tag))
+		df.to_csv('{}/users-search-{}.csv'.format(outdir, tag))
 
 	dfs = [pd.read_csv(file, lineterminator='\n') for file in \
 			glob.glob('{}/inc-tweets-search-{}*.csv'.format(indir, tag))]
@@ -54,7 +51,7 @@ def clean_csv_dfs_(indir, tag, outdir, stat_dir):
 		df.set_index('tweetid', inplace=True)
 		df[~df.index.duplicated(keep='first')]
 		print("number of inc. unique tweets: {}".format(len(df)))
-		df.to_pickle('{}/inc-tweets-search-{}.pkl'.format(outdir, tag))
+		df.to_csv('{}/inc-tweets-search-{}.csv'.format(outdir, tag))
 
 	dfs = [pd.read_csv(file, lineterminator='\n') for file in \
 			glob.glob('{}/media-search-{}*.csv'.format(indir, tag))]
@@ -64,7 +61,7 @@ def clean_csv_dfs_(indir, tag, outdir, stat_dir):
 		df = df[df.media_key!='nan']
 		df.set_index('media_key', inplace=True)
 		df[~df.index.duplicated(keep='first')]
-		df.to_pickle('{}/media-search-{}.pkl'.format(outdir, tag))
+		df.to_csv('{}/media-search-{}.csv'.format(outdir, tag))
 
 def clean_csv_dfs(indir, outdir, tag_file, stat_dir):
 	print('cleaning csv dfs. indir:{}, outdir:{}, tag_file:{}, stat_dir:{}'.format(indir, outdir, tag_file, stat_dir))
@@ -82,21 +79,49 @@ def clean_csv_dfs(indir, outdir, tag_file, stat_dir):
 
 def merge_dfs(indir, outdir):
 	print('merging dfs')
-	tweet_files = glob.glob('{}/tweets-search-*.pkl'.format(indir))
+	tweet_files = glob.glob('{}/tweets-search-*.csv'.format(indir))
 	tweet_dfs = []
 	for file in tweet_files:
-		df= pd.read_pickle(file)
+		df= pd.read_csv(file)
 		df['search_term'] = file.split('-')[-1][:-4].strip()
 		tweet_dfs.append(df)
 
 	tweet_df=pd.concat(tweet_dfs)
 	tweet_df = tweet_df[~tweet_df.index.duplicated(keep='first')]
-	tweet_df.to_pickle('{}/tweets-all.pkl'.format(outdir))
+	tweet_df.to_csv('{}/tweets-all.csv'.format(outdir))
 
-	users_files = glob.glob('{}/users-search-*.pkl'.format(indir))
+	users_files = glob.glob('{}/users-search-*.csv'.format(indir))
 	users_dfs = []
 	for file in users_files:
-		df= pd.read_pickle(file)
+		df= pd.read_csv(file)
 		df['search_term'] = file.split('-')[-1][:-4].strip()
 		users_dfs.append(df)
-	pd.concat(users_dfs).to_pickle('{}/users-all.pkl'.format(outdir))
+  
+	# pd.concat(users_dfs).to_csv('{}/users-all.csv'.format(outdir))
+	users_dfs=pd.concat(users_dfs)
+	users_dfs = users_dfs[~users_dfs.index.duplicated(keep='first')]
+	users_dfs.to_csv('{}/users-all.csv'.format(outdir))
+ 
+ 
+ 
+ 
+#  def merge_dfs(indir, outdir):
+#     	print('merging dfs')
+# 	tweet_files = glob.glob('{}/tweets-search-*.pkl'.format(indir))
+# 	tweet_dfs = []
+# 	for file in tweet_files:
+# 		df= pd.read_pickle(file)
+# 		df['search_term'] = file.split('-')[-1][:-4].strip()
+# 		tweet_dfs.append(df)
+
+# 	tweet_df=pd.concat(tweet_dfs)
+# 	tweet_df = tweet_df[~tweet_df.index.duplicated(keep='first')]
+# 	tweet_df.to_pickle('{}/tweets-all.pkl'.format(outdir))
+
+# 	users_files = glob.glob('{}/users-search-*.pkl'.format(indir))
+# 	users_dfs = []
+# 	for file in users_files:
+# 		df= pd.read_pickle(file)
+# 		df['search_term'] = file.split('-')[-1][:-4].strip()
+# 		users_dfs.append(df)
+# 	pd.concat(users_dfs).to_pickle('{}/users-all.pkl'.format(outdir))
